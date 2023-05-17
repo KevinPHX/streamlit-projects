@@ -13,9 +13,11 @@ def calculate_beta(asset, market):
 st.markdown(
         """
        <style>
-       [data-testid="stSidebar"][aria-expanded="true"]{
-           min-width: 550px;
-       }
+        @media screen and (min-width: 550px) {
+            [data-testid="stSidebar"][aria-expanded="true"]{
+                min-width: 550px;
+            }
+        }
        """,
         unsafe_allow_html=True,
     )   
