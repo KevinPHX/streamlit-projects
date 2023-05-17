@@ -35,6 +35,8 @@ try:
         st.header('Please use a stock ticker')
     else:
         st.title(f"DCF for {asset.quote_type[name]['longName']}")
+        fin_data = asset.financial_data
+
         incm_stmt = asset.income_statement()
         incm_stmt = incm_stmt[incm_stmt.periodType=='12M']
         incm_stmt.index = incm_stmt.asOfDate 
@@ -47,8 +49,18 @@ try:
         stats = asset.key_stats
 
         historical_revenue = incm_stmt.TotalRevenue
+        # if 'EBIT' in incm_stmt.columns:
         ebitda = incm_stmt.ReconciledDepreciation + incm_stmt.EBIT
-        d_and_a = ebitda - incm_stmt.EBIT
+        # elif 'OperatingIncome' in incm_stmt.columns:
+        #     ebitda = incm_stmt.OperatingIncome
+        # elif 'GrossProfit' in incm_stmt.columns:
+        #     ebitda = incm_stmt.GrossProfit
+        # elif 'PretaxIncome' in incm_stmt.columns:
+        #     ebitda = incm_stmt.PretaxIncome
+        # else:
+        #     ebitda = historical_revenue
+        
+        d_and_a = incm_stmt.ReconciledDepreciation
 
         if 'CapitalExpenditureReported' in cash_flow.columns:
             capex = cash_flow['CapitalExpenditureReported']
@@ -77,37 +89,37 @@ try:
             mkt.columns = ['market']
             df = pd.concat([asst, mkt], join='inner', axis = 1).pct_change(1).dropna()
             equity_beta = calculate_beta(df['asset'], df['market'])
-        print(equity_beta)
         total_debt = bln_sht.TotalDebt[-1]
-        print('1')
         return_on_debt = incm_stmt.InterestExpense.fillna(0)[-1]/total_debt
-        print('2')
 
         market_value_equity = asset.history(interval='1mo', period='10y').close.iloc[-1]*stats[name]['sharesOutstanding']
-        print('3')
-        cash = bln_sht['CashCashEquivalentsAndShortTermInvestments'][-1]
-        print('4')
+        if "totalCash" in fin_data.keys():
+            cash = fin_data.totalCash
+        elif 'CashCashEquivalentsAndShortTermInvestments' in bln_sht.columns:
+             cash = bln_sht['CashCashEquivalentsAndShortTermInvestments'][-1]
+        else:
+            cash = bln_sht['CashAndCashEquivalents'][-1]
         shares_outstanding = stats[name]['sharesOutstanding']
-        print('5')
-        forecast_years = pd.date_range(start=incm_stmt.index[-1], periods = years, freq = 'Y').date
+        forecast_years = pd.date_range(start=incm_stmt.index[-1]+pd.DateOffset(years=1), periods = years, freq = 'Y').date
 
-
-        ret_on_equity = risk_free_rate + equity_beta*(market_risk_premium)
-        print('6')
+        if "returnOnEquity" in fin_data.keys():
+            ret_on_equity = fin_data.returnOnEquity
+        else:
+            ret_on_equity = risk_free_rate + equity_beta*(market_risk_premium)
+        print(ret_on_equity)
         discount_rate = ret_on_equity * market_value_equity / (market_value_equity + total_debt) + return_on_debt * (1 - tax_rate) * total_debt/(market_value_equity + total_debt)
-        print('7')
+        current_multiple = stats[name]['enterpriseValue']/ebitda[-1]
+        print(current_multiple)
         with st.sidebar:
             st.header("Key Assumptions")
 
             wacc = st.number_input('Discount Rate',value=discount_rate)
-            exit_multiple = st.number_input("Exit Multiple", value=stats[name]['enterpriseValue']/ebitda[-1])
+            exit_multiple = st.number_input("Exit Multiple", value=current_multiple)
             tax = st.number_input("Tax Rate", value = tax_rate)
 
-        print('8')
 
         historical_revenue_growth = np.diff(historical_revenue)/historical_revenue[:-1]
         historical_revenue_growth.replace([np.inf, -np.inf], 0, inplace=True)
-        # historical_revenue_growth.dropna(inplace=True)
         average_revenue_growth = historical_revenue_growth.mean()
         ebitda_margin = ebitda/historical_revenue
         ebitda_margin.replace([np.inf, -np.inf], 0, inplace=True)
@@ -121,8 +133,6 @@ try:
         chng_work_cap_margin = chng_work_cap/historical_revenue
         chng_work_cap_margin.replace([np.inf, -np.inf], 0, inplace=True)
         average_chng_work_cap_margin = chng_work_cap_margin.mean()
-        print('9')
-        print(historical_revenue_growth.replace([np.inf], np.nan, inplace=True))
         with st.sidebar:
             st.header("Income Statement Assumptions")
             st.text("Adjust Forecasted Revenues")
@@ -134,8 +144,6 @@ try:
             st.text("Yearly Forecasted Revenues")
 
         forecast_revenue = [historical_revenue[-1]]
-        print(historical_revenue)
-        print('10')
         for i in range (0, years):
             current_year = str(forecast_years[i])
             with st.sidebar:
@@ -146,7 +154,6 @@ try:
                     new_rev = st.number_input(f'Revenue for {current_year}',value=forecast_revenue[i]*(1 + rev_rate))
                 forecast_revenue.append(new_rev)
         forecast_revenue = forecast_revenue[1:]
-        print('10')
         with st.sidebar:
             st.text("Adjust Forecasted EBITDA")
             ebitda_growth_rate = st.number_input('EBITDA Margin',value=average_ebitda_margin)
