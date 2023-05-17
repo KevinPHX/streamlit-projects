@@ -10,7 +10,15 @@ cmap=LinearSegmentedColormap.from_list('rg',["r", "w", "g"], N=256)
 def calculate_beta(asset, market):
     return np.cov([asset, market])[0, 1]/np.var(market)
 
-
+st.markdown(
+        """
+       <style>
+       [data-testid="stSidebar"][aria-expanded="true"]{
+           min-width: 550px;
+       }
+       """,
+        unsafe_allow_html=True,
+    )   
 # st.title("DCF")
 with st.sidebar:
     name = st.text_input('Stock Ticker', value='MSFT')
