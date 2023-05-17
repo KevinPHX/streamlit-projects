@@ -265,6 +265,7 @@ try:
             df = pd.DataFrame(ret, index=np.round(X, 3), columns= np.round(Y, 2)).T
             return df
         with st.sidebar:
+            st.header("Sensitivity Analysis Settings")
             value_range = st.number_input("Range", value = 5)
             multiple_increment = st.number_input("Increment Exit Multiple", value = 1.0)
             growth_increment = st.number_input("Increment Growth", value = 0.01)
