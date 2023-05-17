@@ -35,7 +35,7 @@ try:
         st.header('Please use a stock ticker')
     else:
         st.title(f"DCF for {asset.quote_type[name]['longName']}")
-        fin_data = asset.financial_data
+        
 
         incm_stmt = asset.income_statement()
         incm_stmt = incm_stmt[incm_stmt.periodType=='12M']
@@ -47,8 +47,9 @@ try:
         bln_sht = bln_sht[bln_sht.periodType=='12M']
         bln_sht.index = bln_sht.asOfDate 
         stats = asset.key_stats
-
+        fin_data = asset.financial_data
         historical_revenue = incm_stmt.TotalRevenue
+        summary = asset.summary_detail
         # if 'EBIT' in incm_stmt.columns:
         ebitda = incm_stmt.ReconciledDepreciation + incm_stmt.EBIT
         # elif 'OperatingIncome' in incm_stmt.columns:
@@ -89,12 +90,15 @@ try:
             mkt.columns = ['market']
             df = pd.concat([asst, mkt], join='inner', axis = 1).pct_change(1).dropna()
             equity_beta = calculate_beta(df['asset'], df['market'])
-        total_debt = bln_sht.TotalDebt[-1]
+        if "totalDebt" in fin_data[name].keys():
+            total_debt = fin_data[name]['totalDebt']
+        else:
+            total_debt = bln_sht.TotalDebt[-1]
         return_on_debt = incm_stmt.InterestExpense.fillna(0)[-1]/total_debt
 
-        market_value_equity = asset.history(interval='1mo', period='10y').close.iloc[-1]*stats[name]['sharesOutstanding']
-        if "totalCash" in fin_data.keys():
-            cash = fin_data.totalCash
+        market_value_equity = summary[name]['marketCap']
+        if "totalCash" in fin_data[name].keys():
+            cash = fin_data[name]['totalCash']
         elif 'CashCashEquivalentsAndShortTermInvestments' in bln_sht.columns:
              cash = bln_sht['CashCashEquivalentsAndShortTermInvestments'][-1]
         else:
@@ -102,20 +106,26 @@ try:
         shares_outstanding = stats[name]['sharesOutstanding']
         forecast_years = pd.date_range(start=incm_stmt.index[-1]+pd.DateOffset(years=1), periods = years, freq = 'Y').date
 
-        if "returnOnEquity" in fin_data.keys():
-            ret_on_equity = fin_data.returnOnEquity
+        if "returnOnEquity" in fin_data[name].keys():
+            ret_on_equity = fin_data[name]['returnOnEquity']
         else:
             ret_on_equity = risk_free_rate + equity_beta*(market_risk_premium)
         print(ret_on_equity)
-        discount_rate = ret_on_equity * market_value_equity / (market_value_equity + total_debt) + return_on_debt * (1 - tax_rate) * total_debt/(market_value_equity + total_debt)
         current_multiple = stats[name]['enterpriseValue']/ebitda[-1]
         print(current_multiple)
         with st.sidebar:
             st.header("Key Assumptions")
 
-            wacc = st.number_input('Discount Rate',value=discount_rate)
-            exit_multiple = st.number_input("Exit Multiple", value=current_multiple)
+            
             tax = st.number_input("Tax Rate", value = tax_rate)
+            equ_debt = total_debt + market_value_equity
+            e_discount_rate = ret_on_equity * market_value_equity / (equ_debt) 
+            d_discount_rate = return_on_debt * (1 - tax) * (total_debt)/(equ_debt)
+            discount_rate = e_discount_rate + d_discount_rate
+            if "before" not in st.session_state:
+                st.session_state.before = discount_rate
+            wacc = st.number_input('Discount Rate',value=st.session_state.before, step=1e-4, format="%.4f", key='asdf')
+            exit_multiple = st.number_input("Exit Multiple", value=current_multiple)
 
 
         historical_revenue_growth = np.diff(historical_revenue)/historical_revenue[:-1]
