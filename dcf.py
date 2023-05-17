@@ -137,7 +137,7 @@ try:
             st.header("Income Statement Assumptions")
             st.text("Adjust Forecasted Revenues")
 
-            revenue_growth_rate= st.number_input('Revenue Growth Rate',value=average_revenue_growth)
+            revenue_growth_rate= st.number_input('Revenue Growth Rate',value=average_revenue_growth, step=1e-5, format="%.5f")
 
 
         with st.sidebar:
@@ -149,14 +149,14 @@ try:
             with st.sidebar:
                 cols_rev=st.sidebar.columns(2)
                 with cols_rev[0]:
-                    rev_rate = st.number_input(f'Revenue Margin for {current_year}',value=(revenue_growth_rate))
+                    rev_rate = st.number_input(f'Revenue Margin for {current_year}',value=(revenue_growth_rate), step=1e-5, format="%.5f")
                 with cols_rev[1]:
                     new_rev = st.number_input(f'Revenue for {current_year}',value=forecast_revenue[i]*(1 + rev_rate))
                 forecast_revenue.append(new_rev)
         forecast_revenue = forecast_revenue[1:]
         with st.sidebar:
             st.text("Adjust Forecasted EBITDA")
-            ebitda_growth_rate = st.number_input('EBITDA Margin',value=average_ebitda_margin)
+            ebitda_growth_rate = st.number_input('EBITDA Margin',value=average_ebitda_margin, step=1e-5, format="%.5f")
 
 
         with st.sidebar:
@@ -167,14 +167,14 @@ try:
             with st.sidebar:
                 cols_ebitda=st.sidebar.columns(2)
                 with cols_ebitda[0]:
-                    ebitda_rates = st.number_input(f'EBITDA margin for {current_year}',value=ebitda_growth_rate)
+                    ebitda_rates = st.number_input(f'EBITDA margin for {current_year}',value=ebitda_growth_rate, step=1e-5, format="%.5f")
                 with cols_ebitda[1]:
                     new_ebitda = st.number_input(f'EBITDA for {current_year}', value=forecast_revenue[i]* ebitda_rates)
                     forecast_ebitda.append(new_ebitda)
 
         with st.sidebar:
             st.text("Adjust Forecasted Depreciation and Amortization ")
-            d_and_a_growth_rate = st.number_input('Depreciation Margin',value=average_d_and_a_margin)
+            d_and_a_growth_rate = st.number_input('Depreciation Margin',value=average_d_and_a_margin, step=1e-5, format="%.5f")
             
         with st.sidebar:
             st.text("Yearly Forecasted Depreciation and Amortization")
@@ -184,7 +184,7 @@ try:
             with st.sidebar:
                 cols_d_a=st.sidebar.columns(2)
                 with cols_d_a[0]:
-                    new_d_a = st.number_input(f'Depreciation Margin for {current_year}',value= d_and_a_growth_rate)
+                    new_d_a = st.number_input(f'Depreciation Margin for {current_year}',value= d_and_a_growth_rate, step=1e-5, format="%.5f")
                 with cols_d_a[1]:
                     forecast_d_and_a.append(st.number_input(f'Depreciation for {current_year}', value = new_d_a*forecast_revenue[i]))
 
@@ -192,7 +192,7 @@ try:
         with st.sidebar:
             st.header("Cash Flow Assumptions")
             st.text('Adjust Forecasted Capex')
-            capex_growth_rate = st.number_input('Capex Margin',value=average_capex_margin)
+            capex_growth_rate = st.number_input('Capex Margin',value=average_capex_margin, step=1e-5, format="%.5f")
             
         with st.sidebar:
             st.text("Yearly Forecasted Capex")
@@ -202,7 +202,7 @@ try:
             with st.sidebar:
                 cols_capex=st.sidebar.columns(2)
                 with cols_capex[0]:
-                    rate = st.number_input(f'Capex Margin for {current_year}',value= capex_growth_rate)
+                    rate = st.number_input(f'Capex Margin for {current_year}',value= capex_growth_rate, step=1e-5, format="%.5f")
                 with cols_capex[1]:
                     new_capex = rate*forecast_revenue[i]
                     forecast_capex.append(st.number_input(f'Capex for {current_year}', value = new_capex))
@@ -210,7 +210,7 @@ try:
 
         with st.sidebar:
             st.text('Adjust Forecasted Change in Working Capital')
-            working_cap_growth_rate = st.number_input('Working Cap Margin',value=average_chng_work_cap_margin)
+            working_cap_growth_rate = st.number_input('Working Cap Margin',value=average_chng_work_cap_margin, step=1e-5, format="%.5f")
 
 
         with st.sidebar:
@@ -221,7 +221,7 @@ try:
             with st.sidebar:
                 cols_wrk_cap=st.sidebar.columns(2)
                 with cols_wrk_cap[0]:
-                    work_cap_rate = st.number_input(f'Chng in Working Cap Margin for {current_year}',value= working_cap_growth_rate)
+                    work_cap_rate = st.number_input(f'Chng in Working Cap Margin for {current_year}',value= working_cap_growth_rate, step=1e-5, format="%.5f")
                 with cols_wrk_cap[1]:
                     new_work_cap_rate = st.number_input(f'Chng in Working Cap for {current_year}', value =forecast_revenue[i]*work_cap_rate)
                     forecast_chng_work_cap.append(new_work_cap_rate)
