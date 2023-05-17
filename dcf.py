@@ -24,7 +24,7 @@ st.markdown(
 # st.title("DCF")
 with st.sidebar:
     name = st.text_input('Stock Ticker', value='MSFT')
-    years = int(st.number_input('Forecast (years)',value=5))
+    years = int(st.number_input('Forecast (years)',value=5, min_value=1))
     inMM = st.checkbox('Numbers in MM')
 
 
@@ -51,7 +51,11 @@ try:
         historical_revenue = incm_stmt.TotalRevenue
         summary = asset.summary_detail
         # if 'EBIT' in incm_stmt.columns:
-        ebitda = incm_stmt.ReconciledDepreciation + incm_stmt.EBIT
+        if "ReconciledDepreciation" in incm_stmt.columns:
+            d_and_a = incm_stmt.ReconciledDepreciation
+        else:
+            d_and_a = np.zeros(len(incm_stmt.index))
+        ebitda = d_and_a + incm_stmt.EBIT
         # elif 'OperatingIncome' in incm_stmt.columns:
         #     ebitda = incm_stmt.OperatingIncome
         # elif 'GrossProfit' in incm_stmt.columns:
@@ -61,20 +65,19 @@ try:
         # else:
         #     ebitda = historical_revenue
         
-        d_and_a = incm_stmt.ReconciledDepreciation
 
         if 'CapitalExpenditureReported' in cash_flow.columns:
             capex = cash_flow['CapitalExpenditureReported']
+        elif 'NetPPEPurchaseAndSale' in cash_flow.columns:
+            capex = cash_flow.NetPPEPurchaseAndSale + d_and_a
         else:
-            capex = cash_flow.NetPPEPurchaseAndSale + incm_stmt.ReconciledDepreciation
+            capex = d_and_a
             
         chng_work_cap = cash_flow.ChangeInWorkingCapital
         tax_rate = incm_stmt.TaxRateForCalcs[-1]
-        print(tax_rate)
 
-        risk_free_rate = yq.Ticker('^FVX').history().close.iloc[-1]/100
+        risk_free_rate = yq.Ticker('^IRX').history().close.iloc[-1]/100
         market_risk_premium = yq.Ticker('^GSPC').history(interval='1mo', period='10y').close.pct_change(12).mean()
-        print(stats[name].keys())
         equity_beta = 1
         if 'beta' in stats[name].keys():
             equity_beta = stats[name]['beta']
@@ -94,8 +97,10 @@ try:
             total_debt = fin_data[name]['totalDebt']
         else:
             total_debt = bln_sht.TotalDebt[-1]
-        return_on_debt = incm_stmt.InterestExpense.fillna(0)[-1]/total_debt
-
+        if 'InterestExpense' in incm_stmt:
+            return_on_debt = incm_stmt.InterestExpense.fillna(0)[-1]/total_debt
+        else:
+            return_on_debt = np.zeros(len(incm_stmt.index))
         market_value_equity = summary[name]['marketCap']
         if "totalCash" in fin_data[name].keys():
             cash = fin_data[name]['totalCash']
@@ -106,13 +111,11 @@ try:
         shares_outstanding = stats[name]['sharesOutstanding']
         forecast_years = pd.date_range(start=incm_stmt.index[-1]+pd.DateOffset(years=1), periods = years, freq = 'Y').date
 
-        if "returnOnEquity" in fin_data[name].keys():
-            ret_on_equity = fin_data[name]['returnOnEquity']
-        else:
-            ret_on_equity = risk_free_rate + equity_beta*(market_risk_premium)
-        print(ret_on_equity)
+        # if "returnOnEquity" in fin_data[name].keys():
+        #     ret_on_equity = fin_data[name]['returnOnEquity']
+        # else:
+        ret_on_equity = risk_free_rate + equity_beta*(market_risk_premium)
         current_multiple = stats[name]['enterpriseValue']/ebitda[-1]
-        print(current_multiple)
         with st.sidebar:
             st.header("Key Assumptions")
 
@@ -266,7 +269,7 @@ try:
             tv_pct_ev = pv_tv/pv_ev
 
             equity_value = pv_ev - total_debt + cash
-            equity_val_share = equity_value/shares_outstanding
+            equity_val_share = np.maximum(0,equity_value/shares_outstanding)
             growth_rate = (wacc * terminal_value - unlevered_fcf[-1])/(terminal_value + unlevered_fcf[-1])
             return (growth_rate, equity_val_share, tv_pct_ev, terminal_value, total_unlevered_fcf, discount_factors, pv_ev, pv_tv)
         def what_if(x_inc, y_inc, x_median, y_median, count, function, value):
