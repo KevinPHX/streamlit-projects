@@ -165,7 +165,7 @@ try:
             with st.sidebar:
                 cols_rev=st.sidebar.columns(2)
                 with cols_rev[0]:
-                    rev_rate = st.number_input(f'Revenue Margin for {current_year}',value=(revenue_growth_rate), step=1e-5, format="%.5f")
+                    rev_rate = st.number_input(f'Revenue Growth Rate for {current_year}',value=(revenue_growth_rate), step=1e-5, format="%.5f")
                 with cols_rev[1]:
                     new_rev = st.number_input(f'Revenue for {current_year}',value=forecast_revenue[i]*(1 + rev_rate))
                 forecast_revenue.append(new_rev)
