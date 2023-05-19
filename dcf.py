@@ -66,12 +66,14 @@ try:
         #     ebitda = historical_revenue
         
 
-        if 'CapitalExpenditureReported' in cash_flow.columns:
+        if 'CapitalExpenditure' in cash_flow.columns:
+            capex = cash_flow['CapitalExpenditure']
+        elif 'CapitalExpenditureReported' in cash_flow.columns:
             capex = cash_flow['CapitalExpenditureReported']
         elif 'NetPPEPurchaseAndSale' in cash_flow.columns:
-            capex = cash_flow.NetPPEPurchaseAndSale + d_and_a
+            capex = -1*(cash_flow.NetPPEPurchaseAndSale + d_and_a)
         else:
-            capex = d_and_a
+            capex = -1*(d_and_a)
             
         chng_work_cap = cash_flow.ChangeInWorkingCapital
         tax_rate = incm_stmt.TaxRateForCalcs[-1]
@@ -140,6 +142,7 @@ try:
         d_and_a_margin = d_and_a/historical_revenue
         d_and_a_margin.replace([np.inf, -np.inf], 0, inplace=True)
         average_d_and_a_margin = d_and_a_margin.mean()
+        print(capex)
         capex_margin = capex/historical_revenue
         capex_margin.replace([np.inf, -np.inf], 0, inplace=True)
         average_capex_margin = capex_margin.mean()
